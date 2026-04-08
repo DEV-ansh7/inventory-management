@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Inventory Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
+
+/* ---- Auth ---- */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#6a11cb,#2575fc)}
+.auth-card{background:white;border-radius:16px;padding:40px;width:380px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo h1{font-size:24px;font-weight:700;color:#1a1a2e}
+.auth-logo p{font-size:13px;color:#8892a4;margin-top:4px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px}
+.form-control{width:100%;padding:10px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:border-color .2s,box-shadow .2s}
+.form-control:focus{border-color:#2575fc;box-shadow:0 0 0 3px rgba(37,117,252,.1)}
+.btn{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:linear-gradient(135deg,#6a11cb,#2575fc);color:white}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+.btn-secondary{background:#f3f4f6;color:#374151}
+.btn-secondary:hover{background:#e5e7eb}
+.btn-success{background:#10b981;color:white}
+.btn-danger{background:#ef4444;color:white}
+.btn-warning{background:#f59e0b;color:white}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-block{width:100%;justify-content:center}
+.auth-error{background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;display:none}
+
+/* ---- Layout ---- */
+.app{display:flex;min-height:100vh}
+.sidebar{width:240px;background:linear-gradient(180deg,#1a1a2e,#16213e);flex-shrink:0;display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100}
+.sidebar-logo{padding:24px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo h2{color:white;font-size:16px;font-weight:700}
+.sidebar-logo p{color:rgba(255,255,255,.5);font-size:11px;margin-top:2px}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:2px;transition:all .2s;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.08);color:white}
+.nav-item.active{background:linear-gradient(135deg,rgba(106,17,203,.5),rgba(37,117,252,.5));color:white}
+.nav-item svg{flex-shrink:0;width:16px;height:16px}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;color:rgba(255,255,255,.4)}
+.logout-btn{color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;padding:8px 12px;border-radius:8px;transition:all .2s}
+.logout-btn:hover{background:rgba(255,255,255,.08);color:#ef4444}
+
+.main{margin-left:240px;flex:1;padding:24px}
+.page{display:none}
+.page.active{display:block}
+.page-header{margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.page-title{font-size:20px;font-weight:700;color:#1a1a2e}
+
+/* ---- Stats ---- */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:white;border-radius:12px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #e8ecf1}
+.stat-label{font-size:11px;font-weight:600;color:#8892a4;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.stat-value{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:11px;color:#9ca3af;margin-top:6px}
+.blue{color:#2575fc}.green{color:#10b981}.orange{color:#f59e0b}.red{color:#ef4444}.purple{color:#7c3aed}
+
+/* ---- Alerts ---- */
+.alert-list{display:flex;flex-direction:column;gap:8px;margin-bottom:24px}
+.alert-item{padding:12px 16px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:10px}
+.alert-warning{background:#fffbeb;border:1px solid #fcd34d;color:#92400e}
+.alert-danger{background:#fef2f2;border:1px solid #fca5a5;color:#991b1b}
+.alert-info{background:#eff6ff;border:1px solid #93c5fd;color:#1e40af}
+
+/* ---- Card / Panel ---- */
+.card{background:white;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);border:1px solid #e8ecf1;overflow:hidden;margin-bottom:20px}
+.card-header{padding:16px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.card-title{font-size:14px;font-weight:600;color:#1a1a2e}
+.card-body{padding:20px}
+
+/* ---- Table ---- */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:600px}
+thead th{background:#f8f9fb;color:#6b7280;padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #e8ecf1;white-space:nowrap;text-align:left}
+td{padding:10px 14px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#374151;white-space:nowrap}
+tbody tr:hover{background:#f8faff}
+tbody tr:last-child td{border:none}
+
+/* ---- Badges ---- */
+.badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block}
+.badge-success{background:#d1fae5;color:#065f46}
+.badge-warning{background:#fef3c7;color:#92400e}
+.badge-danger{background:#fee2e2;color:#991b1b}
+.badge-info{background:#dbeafe;color:#1d4ed8}
+.badge-gray{background:#f3f4f6;color:#6b7280}
+
+/* ---- Modal ---- */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:white;border-radius:16px;padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 25px 50px rgba(0,0,0,.2)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:20px;color:#1a1a2e}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;padding-top:16px;border-top:1px solid #f3f4f6}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:5px}
+
+/* ---- Sale items builder ---- */
+.line-items{background:#f8f9fb;border-radius:8px;padding:12px;margin-bottom:12px}
+.line-item-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px}
+.add-line-btn{font-size:12px;color:#2575fc;cursor:pointer;background:none;border:none;font-family:inherit;padding:4px 0}
+
+/* ---- Search ---- */
+.search-wrapper{position:relative}
+.search-wrapper input{padding:8px 12px 8px 34px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;outline:none;width:220px}
+.search-wrapper svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none}
+
+/* ---- UPI payment modal ---- */
+.upi-amount{font-size:32px;font-weight:700;color:#1a1a2e;text-align:center;margin:16px 0}
+.upi-sub{font-size:13px;color:#6b7280;text-align:center;margin-bottom:20px}
+
+/* ---- Empty ---- */
+.empty{padding:40px;text-align:center;color:#9ca3af;font-size:13px}
+
+/* ---- Toast ---- */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:white;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;display:none;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+#toast.show{display:block;animation:fadeIn .3s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- Auth Page -->
+<div id="authPage" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <h1>Inventory</h1>
+      <p>Management System</p>
+    </div>
+    <div id="authError" class="auth-error"></div>
+    <div class="form-group">
+      <label>Username</label>
+      <input id="loginUser" class="form-control" type="text" placeholder="admin" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input id="loginPass" class="form-control" type="password" placeholder="••••••••" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary btn-block" onclick="login()">Sign In</button>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="appShell" class="app" style="display:none">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>Inventory</h2>
+      <p>Management System</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="goTo('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </div>
+      <div class="nav-item" onclick="goTo('inventory')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        Inventory
+      </div>
+      <div class="nav-item" onclick="goTo('purchase')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        Buy / Restock
+      </div>
+      <div class="nav-item" onclick="goTo('sales')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        Sell
+      </div>
+      <div class="nav-item" onclick="goTo('payments')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        Payments
+      </div>
+      <div class="nav-item" onclick="goTo('clients')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clients
+      </div>
+      <div class="nav-item" onclick="goTo('transactions')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Transaction Log
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="logout-btn" onclick="logout()">Sign Out</div>
+      <div style="margin-top:6px" id="userLabel"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- Dashboard -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div class="page-title">Dashboard</div>
+        <button class="btn btn-secondary btn-sm" onclick="loadDashboard()">Refresh</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Items</div><div class="stat-value blue" id="d-totalItems">--</div><div class="stat-sub">In catalogue</div></div>
+        <div class="stat-card"><div class="stat-label">Today's Sales</div><div class="stat-value green" id="d-sales">--</div><div class="stat-sub" id="d-revenue"></div></div>
+        <div class="stat-card"><div class="stat-label">Pending Payments</div><div class="stat-value orange" id="d-pending">--</div><div class="stat-sub">Outstanding amount</div></div>
+        <div class="stat-card"><div class="stat-label">Stock Alerts</div><div class="stat-value red" id="d-alerts">--</div><div class="stat-sub" id="d-outofstock"></div></div>
+      </div>
+      <div id="alertList" class="alert-list"></div>
+    </div>
+
+    <!-- Inventory -->
+    <div id="page-inventory" class="page">
+      <div class="page-header">
+        <div class="page-title">Inventory Items</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="search-wrapper">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Search items..." oninput="searchItems(this.value)" id="itemSearchInput"/>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openAddItem()">+ Add Item</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Stock</th><th>Purchase ₹</th><th>Selling ₹</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="inventoryBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Buy / Restock -->
+    <div id="page-purchase" class="page">
+      <div class="page-header"><div class="page-title">Buy / Restock Items</div></div>
+      <div class="card" style="max-width:520px">
+        <div class="card-body">
+          <div class="form-group">
+            <label>Item</label>
+            <select id="purchaseItem" class="form-control"><option value="">Select item...</option></select>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Quantity</label>
+              <input type="number" id="purchaseQty" class="form-control" placeholder="0" min="1"/>
+            </div>
+            <div class="form-group">
+              <label>Unit Price (₹)</label>
+              <input type="number" id="purchasePrice" class="form-control" placeholder="0.00" step="0.01"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Supplier (optional)</label>
+            <input type="text" id="purchaseSupplier" class="form-control" placeholder="Supplier name"/>
+          </div>
+          <div class="form-group">
+            <label>Notes (optional)</label>
+            <input type="text" id="purchaseNotes" class="form-control" placeholder="Notes..."/>
+          </div>
+          <button class="btn btn-primary" onclick="recordPurchase()">Record Purchase</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Purchases</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Supplier</th></tr></thead>
+            <tbody id="purchaseBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sales -->
+    <div id="page-sales" class="page">
+      <div class="page-header">
+        <div class="page-title">Record Sale</div>
+        <button class="btn btn-primary btn-sm" onclick="openNewSale()">+ New Sale</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sale #</th><th>Client</th><th>Total</th><th>Net</th><th>Payment</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+            <tbody id="salesBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payments -->
+    <div id="page-payments" class="page">
+      <div class="page-header">
+        <div class="page-title">Payments</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="loadPayments('all')">All</button>
+          <button class="btn btn-warning btn-sm" onclick="loadPayments('pending')">Pending</button>
+          <button class="btn btn-danger btn-sm" onclick="loadPayments('overdue')">Overdue</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sale #</th><th>Client</th><th>Amount</th><th>Method</th><th>Status</th><th>Due Date</th><th>Paid At</th><th>Actions</th></tr></thead>
+            <tbody id="paymentsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clients -->
+    <div id="page-clients" class="page">
+      <div class="page-header">
+        <div class="page-title">Clients</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddClient()">+ Add Client</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>UPI ID</th><th>Actions</th></tr></thead>
+            <tbody id="clientsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div id="page-transactions" class="page">
+      <div class="page-header"><div class="page-title">Transaction Log</div></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Change</th><th>Before</th><th>After</th><th>Price</th><th>By</th></tr></thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ============ MODALS ============ -->
+
+<!-- Add / Edit Item -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal">
+    <div class="modal-title" id="itemModalTitle">Add Item</div>
+    <input type="hidden" id="itemId"/>
+    <div class="form-row">
+      <div class="form-group"><label>Name *</label><input id="iName" class="form-control" placeholder="Item name"/></div>
+      <div class="form-group"><label>SKU</label><input id="iSku" class="form-control" placeholder="AUTO"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Category</label><input id="iCategory" class="form-control" placeholder="Category"/></div>
+      <div class="form-group"><label>Unit</label><input id="iUnit" class="form-control" placeholder="pcs" value="pcs"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Initial Quantity</label><input id="iQty" class="form-control" type="number" placeholder="0" value="0"/></div>
+      <div class="form-group"><label>Low Stock Alert at</label><input id="iThreshold" class="form-control" type="number" placeholder="10" value="10"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Purchase Price (₹)</label><input id="iPurchasePrice" class="form-control" type="number" placeholder="0.00" step="0.01"/></div>
+      <div class="form-group"><label>Selling Price (₹)</label><input id="iSellingPrice" class="form-control" type="number" placeholder="0.00" step="0.01"/></div>
+    </div>
+    <div class="form-group"><label>Description</label><input id="iDesc" class="form-control" placeholder="Optional description"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('itemModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Sale Modal -->
+<div class="modal-overlay" id="saleModal">
+  <div class="modal">
+    <div class="modal-title">New Sale</div>
+    <div class="form-group">
+      <label>Client (optional)</label>
+      <select id="saleClient" class="form-control"><option value="">Walk-in Customer</option></select>
+    </div>
+    <div class="form-group">
+      <label>Items</label>
+      <div class="line-items" id="saleLineItems"></div>
+      <button class="add-line-btn" onclick="addLineItem()">+ Add Item</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Discount (₹)</label><input id="saleDiscount" class="form-control" type="number" placeholder="0" value="0" step="0.01"/></div>
+      <div class="form-group"><label>Payment Method</label>
+        <select id="salePayMethod" class="form-control" onchange="toggleDueDate()">
+          <option value="CASH">Cash</option>
+          <option value="UPI">UPI</option>
+          <option value="BANK_TRANSFER">Bank Transfer</option>
+          <option value="DEFERRED">Deferred (Pay Later)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" id="dueDateGroup" style="display:none">
+      <label>Payment Due Date *</label>
+      <input id="saleDueDate" class="form-control" type="date"/>
+    </div>
+    <div class="form-group"><label>Notes</label><input id="saleNotes" class="form-control" placeholder="Optional notes"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('saleModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="submitSale()">Create Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal">
+    <div class="modal-title" id="clientModalTitle">Add Client</div>
+    <input type="hidden" id="clientId"/>
+    <div class="form-row">
+      <div class="form-group"><label>Name *</label><input id="cName" class="form-control" placeholder="Full name"/></div>
+      <div class="form-group"><label>Phone</label><input id="cPhone" class="form-control" placeholder="+91 XXXXXXXXXX"/></div>
+    </div>
+    <div class="form-group"><label>Email</label><input id="cEmail" class="form-control" type="email" placeholder="email@example.com"/></div>
+    <div class="form-group"><label>UPI ID</label><input id="cUpi" class="form-control" placeholder="name@upi"/></div>
+    <div class="form-group"><label>Address</label><input id="cAddress" class="form-control" placeholder="Address"/></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('clientModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- UPI Pay Modal -->
+<div class="modal-overlay" id="upiModal">
+  <div class="modal" style="max-width:380px;text-align:center">
+    <div class="modal-title">UPI Payment</div>
+    <div class="upi-amount" id="upiAmount">₹0</div>
+    <div class="upi-sub" id="upiSaleRef"></div>
+    <button class="btn btn-primary btn-block" style="margin-bottom:10px" onclick="launchRazorpay()">Pay via UPI / Card</button>
+    <button class="btn btn-secondary btn-block" onclick="closeModal('upiModal')">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const BASE = 'http://localhost:8081/api';
+let token = localStorage.getItem('inv_token');
+let inventoryList = [];
+let clientList = [];
+let currentUpiPayment = null;
+let currentUpiOrder = null;
+
+// ===================== AUTH =====================
+async function login() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const err = document.getElementById('authError');
+  err.style.display = 'none';
+  try {
+    const res = await api('/auth/login', 'POST', {username:u, password:p}, false);
+    token = res.data.token;
+    localStorage.setItem('inv_token', token);
+    document.getElementById('userLabel').textContent = res.data.username;
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    loadDashboard(); loadInventory(); loadClients(); loadSalesPage(); loadPayments(); loadTransactions();
+  } catch(e) {
+    err.style.display = 'block';
+    err.textContent = 'Invalid credentials';
+  }
+}
+
+function logout() {
+  localStorage.removeItem('inv_token');
+  location.reload();
+}
+
+// On load
+window.onload = () => {
+  if (token) {
+    document.getElementById('authPage').style.display = 'none';
+    document.getElementById('appShell').style.display = 'flex';
+    loadDashboard(); loadInventory(); loadClients(); loadSalesPage(); loadPayments(); loadTransactions();
+  }
+  document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
+};
+
+// ===================== NAVIGATION =====================
+function goTo(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (page === 'purchase') loadPurchaseItems();
+}
+
+// ===================== API helper =====================
+async function api(path, method='GET', body=null, auth=true) {
+  const opts = {
+    method,
+    headers: {'Content-Type':'application/json', ...(auth ? {'Authorization':'Bearer '+token} : {})}
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + path, opts);
+  if (!res.ok) {
+    const txt = await res.text(); throw new Error(txt);
+  }
+  return res.json();
+}
+
+function toast(msg, ok=true) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = ok ? '#1a1a2e' : '#ef4444';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ===================== DASHBOARD =====================
+async function loadDashboard() {
+  try {
+    const res = await api('/dashboard');
+    const d = res.data;
+    document.getElementById('d-totalItems').textContent = d.totalItems;
+    document.getElementById('d-sales').textContent = d.totalSalesToday;
+    document.getElementById('d-revenue').textContent = '₹' + (d.revenueTodayAmount || 0).toLocaleString('en-IN');
+    document.getElementById('d-pending').textContent = '₹' + parseFloat(d.totalPendingPayments || 0).toLocaleString('en-IN');
+    document.getElementById('d-alerts').textContent = d.lowStockCount;
+    document.getElementById('d-outofstock').textContent = d.outOfStockCount + ' out of stock';
+    const alertList = document.getElementById('alertList');
+    alertList.innerHTML = (d.alerts || []).map(a => `
+      <div class="alert-item alert-${a.severity}">
+        <strong>${a.title}:</strong> ${a.message}
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ===================== INVENTORY =====================
+async function loadInventory() {
+  try {
+    const res = await api('/inventory');
+    inventoryList = res.data || [];
+    renderInventory(inventoryList);
+  } catch(e) { console.error(e); }
+}
+
+function renderInventory(items) {
+  const body = document.getElementById('inventoryBody');
+  if (!items.length) { body.innerHTML = '<tr><td colspan="8" class="empty">No items found</td></tr>'; return; }
+  body.innerHTML = items.map(i => `
+    <tr>
+      <td><code>${i.sku || '-'}</code></td>
+      <td><strong>${i.name}</strong></td>
+      <td>${i.category || '-'}</td>
+      <td>
+        ${i.quantity} ${i.unit}
+        ${i.quantity === 0 ? '<span class="badge badge-danger">Out</span>' : i.quantity <= i.lowStockThreshold ? '<span class="badge badge-warning">Low</span>' : ''}
+      </td>
+      <td>₹${i.purchasePrice || '-'}</td>
+      <td>₹${i.sellingPrice || '-'}</td>
+      <td><span class="badge ${i.active ? 'badge-success' : 'badge-gray'}">${i.active ? 'Active' : 'Inactive'}</span></td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="openEditItem(${i.id})">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteItem(${i.id})">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+function searchItems(q) {
+  if (!q) { renderInventory(inventoryList); return; }
+  renderInventory(inventoryList.filter(i => i.name.toLowerCase().includes(q.toLowerCase()) || (i.sku||'').toLowerCase().includes(q.toLowerCase())));
+}
+
+function openAddItem() {
+  clearItemForm();
+  document.getElementById('itemModalTitle').textContent = 'Add Item';
+  document.getElementById('itemId').value = '';
+  openModal('itemModal');
+}
+
+function openEditItem(id) {
+  const item = inventoryList.find(i => i.id === id);
+  if (!item) return;
+  document.getElementById('itemModalTitle').textContent = 'Edit Item';
+  document.getElementById('itemId').value = id;
+  document.getElementById('iName').value = item.name;
+  document.getElementById('iSku').value = item.sku || '';
+  document.getElementById('iCategory').value = item.category || '';
+  document.getElementById('iUnit').value = item.unit || 'pcs';
+  document.getElementById('iQty').value = item.quantity;
+  document.getElementById('iThreshold').value = item.lowStockThreshold;
+  document.getElementById('iPurchasePrice').value = item.purchasePrice || '';
+  document.getElementById('iSellingPrice').value = item.sellingPrice || '';
+  document.getElementById('iDesc').value = item.description || '';
+  openModal('itemModal');
+}
+
+function clearItemForm() {
+  ['iName','iSku','iCategory','iDesc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('iUnit').value = 'pcs';
+  document.getElementById('iQty').value = 0;
+  document.getElementById('iThreshold').value = 10;
+  document.getElementById('iPurchasePrice').value = '';
+  document.getElementById('iSellingPrice').value = '';
+}
+
+async function saveItem() {
+  const id = document.getElementById('itemId').value;
+  const payload = {
+    name: document.getElementById('iName').value,
+    sku: document.getElementById('iSku').value || null,
+    category: document.getElementById('iCategory').value || null,
+    unit: document.getElementById('iUnit').value || 'pcs',
+    quantity: parseInt(document.getElementById('iQty').value) || 0,
+    lowStockThreshold: parseInt(document.getElementById('iThreshold').value) || 10,
+    purchasePrice: parseFloat(document.getElementById('iPurchasePrice').value) || null,
+    sellingPrice: parseFloat(document.getElementById('iSellingPrice').value) || null,
+    description: document.getElementById('iDesc').value || null
+  };
+  if (!payload.name) { toast('Item name is required', false); return; }
+  try {
+    await api(id ? '/inventory/'+id : '/inventory', id ? 'PUT' : 'POST', payload);
+    closeModal('itemModal');
+    toast(id ? 'Item updated' : 'Item created');
+    loadInventory();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+async function deleteItem(id) {
+  if (!confirm('Delete this item?')) return;
+  try {
+    await api('/inventory/'+id, 'DELETE');
+    toast('Item deleted');
+    loadInventory();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+// ===================== PURCHASE =====================
+function loadPurchaseItems() {
+  const sel = document.getElementById('purchaseItem');
+  sel.innerHTML = '<option value="">Select item...</option>';
+  inventoryList.forEach(i => sel.innerHTML += `<option value="${i.id}">${i.name} (stock: ${i.quantity})</option>`);
+  loadRecentPurchases();
+}
+
+async function loadRecentPurchases() {
+  try {
+    const res = await api('/inventory/transactions?size=20');
+    const items = (res.data.content || []).filter(t => t.transactionType === 'PURCHASE');
+    document.getElementById('purchaseBody').innerHTML = items.length
+      ? items.map(t => `<tr>
+          <td>${fmtDate(t.transactionDate)}</td>
+          <td>${t.itemName}</td>
+          <td>+${t.quantityChange}</td>
+          <td>₹${t.unitPrice || '-'}</td>
+          <td>₹${t.unitPrice ? (t.quantityChange * t.unitPrice).toFixed(2) : '-'}</td>
+          <td>-</td>
+        </tr>`).join('')
+      : '<tr><td colspan="6" class="empty">No purchases yet</td></tr>';
+  } catch(e) {}
+}
+
+async function recordPurchase() {
+  const itemId = document.getElementById('purchaseItem').value;
+  const qty = parseInt(document.getElementById('purchaseQty').value);
+  const price = parseFloat(document.getElementById('purchasePrice').value);
+  if (!itemId || !qty || !price) { toast('Fill item, quantity, and price', false); return; }
+  try {
+    await api('/inventory/purchase', 'POST', {
+      itemId: parseInt(itemId), quantity: qty, unitPrice: price,
+      supplier: document.getElementById('purchaseSupplier').value || null,
+      notes: document.getElementById('purchaseNotes').value || null
+    });
+    toast('Purchase recorded');
+    ['purchaseItem','purchaseQty','purchasePrice','purchaseSupplier','purchaseNotes']
+      .forEach(id => document.getElementById(id).value = '');
+    loadInventory();
+    loadPurchaseItems();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+// ===================== SALES =====================
+async function loadSalesPage() {
+  try {
+    const res = await api('/sales');
+    const sales = res.data || [];
+    document.getElementById('salesBody').innerHTML = sales.length
+      ? sales.map(s => `<tr>
+          <td><strong>${s.saleNumber}</strong></td>
+          <td>${s.client ? s.client.name : 'Walk-in'}</td>
+          <td>₹${s.totalAmount}</td>
+          <td>₹${s.netAmount}</td>
+          <td>${s.items ? s.items.map(i => i.item.name).join(', ') : '-'}</td>
+          <td><span class="badge ${statusBadge(s.paymentStatus)}">${s.paymentStatus}</span></td>
+          <td>${fmtDate(s.saleDate)}</td>
+          <td><button class="btn btn-secondary btn-sm" onclick="viewSale(${s.id})">View</button></td>
+        </tr>`).join('')
+      : '<tr><td colspan="8" class="empty">No sales yet</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+function openNewSale() {
+  // Populate client dropdown
+  const sel = document.getElementById('saleClient');
+  sel.innerHTML = '<option value="">Walk-in Customer</option>';
+  clientList.forEach(c => sel.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+  // Reset line items
+  document.getElementById('saleLineItems').innerHTML = '';
+  document.getElementById('saleDiscount').value = '0';
+  document.getElementById('salePayMethod').value = 'CASH';
+  document.getElementById('saleNotes').value = '';
+  document.getElementById('dueDateGroup').style.display = 'none';
+  addLineItem();
+  openModal('saleModal');
+}
+
+function addLineItem() {
+  const container = document.getElementById('saleLineItems');
+  const idx = container.children.length;
+  const options = inventoryList.map(i => `<option value="${i.id}" data-price="${i.sellingPrice||0}">${i.name} (${i.quantity} left)</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'line-item-row';
+  row.innerHTML = `
+    <select class="form-control li-item" onchange="fillPrice(this)" data-idx="${idx}">${options}</select>
+    <input class="form-control li-qty" type="number" placeholder="Qty" min="1" value="1"/>
+    <input class="form-control li-price" type="number" placeholder="Price" step="0.01"/>
+    <button class="btn btn-danger btn-sm" onclick="this.parentElement.remove()">✕</button>`;
+  container.appendChild(row);
+  // prefill price
+  const sel = row.querySelector('.li-item');
+  if (sel.options[0]) fillPrice(sel);
+}
+
+function fillPrice(sel) {
+  const price = sel.options[sel.selectedIndex]?.dataset.price;
+  sel.closest('.line-item-row').querySelector('.li-price').value = price || '';
+}
+
+function toggleDueDate() {
+  const m = document.getElementById('salePayMethod').value;
+  document.getElementById('dueDateGroup').style.display = m === 'DEFERRED' ? 'block' : 'none';
+}
+
+async function submitSale() {
+  const rows = document.getElementById('saleLineItems').children;
+  const items = [];
+  for (const row of rows) {
+    const itemId = parseInt(row.querySelector('.li-item').value);
+    const qty = parseInt(row.querySelector('.li-qty').value);
+    const price = parseFloat(row.querySelector('.li-price').value);
+    if (!itemId || !qty || !price) { toast('Fill all item rows', false); return; }
+    items.push({itemId, quantity: qty, unitPrice: price});
+  }
+  if (!items.length) { toast('Add at least one item', false); return; }
+  const payMethod = document.getElementById('salePayMethod').value;
+  const dueDate = document.getElementById('saleDueDate').value;
+  if (payMethod === 'DEFERRED' && !dueDate) { toast('Select a due date', false); return; }
+
+  const payload = {
+    clientId: parseInt(document.getElementById('saleClient').value) || null,
+    items,
+    discount: parseFloat(document.getElementById('saleDiscount').value) || 0,
+    notes: document.getElementById('saleNotes').value || null,
+    paymentMethod: payMethod,
+    paymentDueDate: dueDate || null
+  };
+  try {
+    const res = await api('/sales', 'POST', payload);
+    closeModal('saleModal');
+    toast('Sale created: ' + res.data.saleNumber);
+    loadSalesPage(); loadInventory(); loadDashboard();
+    if (payMethod === 'UPI') openUpiForSale(res.data.id);
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+async function viewSale(id) {
+  const res = await api('/sales/' + id);
+  const s = res.data;
+  const items = s.items?.map(i => `${i.item.name} x${i.quantity} @₹${i.unitPrice}`).join('\n') || '';
+  alert(`Sale: ${s.saleNumber}\nClient: ${s.client?.name || 'Walk-in'}\nItems:\n${items}\nTotal: ₹${s.totalAmount}\nNet: ₹${s.netAmount}\nStatus: ${s.paymentStatus}`);
+}
+
+// ===================== PAYMENTS =====================
+async function loadPayments(filter='all') {
+  try {
+    const path = filter === 'pending' ? '/payment/pending' : filter === 'overdue' ? '/payment/overdue' : '/payment';
+    const res = await api(path);
+    const payments = res.data || [];
+    document.getElementById('paymentsBody').innerHTML = payments.length
+      ? payments.map(p => `<tr>
+          <td>${p.sale?.saleNumber || '-'}</td>
+          <td>${p.client?.name || 'Walk-in'}</td>
+          <td><strong>₹${p.amount}</strong></td>
+          <td><span class="badge badge-info">${p.paymentMethod}</span></td>
+          <td><span class="badge ${payStatusBadge(p.paymentStatus)}">${p.paymentStatus}</span></td>
+          <td>${p.dueDate || '-'}</td>
+          <td>${p.paidAt ? fmtDate(p.paidAt) : '-'}</td>
+          <td style="display:flex;gap:4px">
+            ${p.paymentStatus !== 'PAID' ? `
+              <button class="btn btn-success btn-sm" onclick="markPaid(${p.id})">Mark Paid</button>
+              ${p.paymentMethod === 'UPI' ? `<button class="btn btn-primary btn-sm" onclick="openUpiPayment(${p.id}, ${p.amount}, '${p.sale?.saleNumber||''}')">Pay UPI</button>` : ''}
+            ` : ''}
+          </td>
+        </tr>`).join('')
+      : '<tr><td colspan="8" class="empty">No payments found</td></tr>';
+  } catch(e) { console.error(e); }
+}
+
+async function markPaid(id) {
+  const txId = prompt('Enter UPI/Transaction ID (optional):') || '';
+  try {
+    await api('/payment/'+id+'/mark-paid', 'POST', {upiTransactionId: txId || null});
+    toast('Payment marked as paid');
+    loadPayments(); loadDashboard();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+function openUpiPayment(paymentId, amount, saleRef) {
+  currentUpiPayment = {paymentId, amount};
+  document.getElementById('upiAmount').textContent = '₹' + amount;
+  document.getElementById('upiSaleRef').textContent = 'For sale: ' + saleRef;
+  openModal('upiModal');
+}
+
+async function openUpiForSale(saleId) {
+  try {
+    const payments = await api('/payment/sale/' + saleId);
+    const upiP = (payments.data || []).find(p => p.paymentMethod === 'UPI');
+    if (upiP) openUpiPayment(upiP.id, upiP.amount, '');
+  } catch(e) {}
+}
+
+async function launchRazorpay() {
+  if (!currentUpiPayment) return;
+  try {
+    const res = await api('/payment/'+currentUpiPayment.paymentId+'/upi-order');
+    const order = res.data;
+    const options = {
+      key: order.key,
+      amount: parseFloat(order.amount) * 100,
+      currency: order.currency,
+      name: order.name,
+      description: order.description,
+      order_id: order.orderId,
+      handler: function(response) {
+        api('/payment/'+currentUpiPayment.paymentId+'/mark-paid', 'POST', {
+          upiTransactionId: response.razorpay_payment_id
+        }).then(() => {
+          toast('Payment successful!');
+          closeModal('upiModal');
+          loadPayments(); loadDashboard();
+        });
+      },
+      prefill: { method: 'upi' },
+      theme: { color: '#2575fc' }
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch(e) { toast('UPI error: ' + e.message, false); }
+}
+
+// ===================== CLIENTS =====================
+async function loadClients() {
+  try {
+    const res = await api('/clients');
+    clientList = res.data || [];
+    renderClients(clientList);
+  } catch(e) {}
+}
+
+function renderClients(clients) {
+  document.getElementById('clientsBody').innerHTML = clients.length
+    ? clients.map(c => `<tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.email || '-'}</td>
+        <td>${c.phone || '-'}</td>
+        <td>${c.upiId || '-'}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="openEditClient(${c.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClient(${c.id})">Delete</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" class="empty">No clients yet</td></tr>';
+}
+
+function openAddClient() {
+  clearClientForm();
+  document.getElementById('clientId').value = '';
+  document.getElementById('clientModalTitle').textContent = 'Add Client';
+  openModal('clientModal');
+}
+
+function openEditClient(id) {
+  const c = clientList.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('clientId').value = id;
+  document.getElementById('clientModalTitle').textContent = 'Edit Client';
+  document.getElementById('cName').value = c.name;
+  document.getElementById('cEmail').value = c.email || '';
+  document.getElementById('cPhone').value = c.phone || '';
+  document.getElementById('cUpi').value = c.upiId || '';
+  document.getElementById('cAddress').value = c.address || '';
+  openModal('clientModal');
+}
+
+function clearClientForm() {
+  ['cName','cEmail','cPhone','cUpi','cAddress'].forEach(id => document.getElementById(id).value = '');
+}
+
+async function saveClient() {
+  const id = document.getElementById('clientId').value;
+  const payload = {
+    name: document.getElementById('cName').value,
+    email: document.getElementById('cEmail').value || null,
+    phone: document.getElementById('cPhone').value || null,
+    upiId: document.getElementById('cUpi').value || null,
+    address: document.getElementById('cAddress').value || null
+  };
+  if (!payload.name) { toast('Client name is required', false); return; }
+  try {
+    await api(id ? '/clients/'+id : '/clients', id ? 'PUT' : 'POST', payload);
+    closeModal('clientModal');
+    toast(id ? 'Client updated' : 'Client created');
+    loadClients();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+async function deleteClient(id) {
+  if (!confirm('Delete this client?')) return;
+  try {
+    await api('/clients/'+id, 'DELETE');
+    toast('Client deleted');
+    loadClients();
+  } catch(e) { toast('Error: ' + e.message, false); }
+}
+
+// ===================== TRANSACTIONS =====================
+async function loadTransactions() {
+  try {
+    const res = await api('/inventory/transactions?size=100');
+    const items = res.data?.content || [];
+    document.getElementById('txBody').innerHTML = items.length
+      ? items.map(t => `<tr>
+          <td>${fmtDate(t.transactionDate)}</td>
+          <td><span class="badge ${t.transactionType==='PURCHASE'?'badge-info':t.transactionType==='SALE'?'badge-success':'badge-gray'}">${t.transactionType}</span></td>
+          <td>${t.itemName}</td>
+          <td style="color:${t.quantityChange > 0 ? '#10b981':'#ef4444'};font-weight:600">${t.quantityChange > 0 ? '+':''}${t.quantityChange}</td>
+          <td>${t.quantityBefore}</td>
+          <td>${t.quantityAfter}</td>
+          <td>${t.unitPrice ? '₹'+t.unitPrice : '-'}</td>
+          <td>${t.performedBy?.username || '-'}</td>
+        </tr>`).join('')
+      : '<tr><td colspan="8" class="empty">No transactions yet</td></tr>';
+  } catch(e) {}
+}
+
+// ===================== HELPERS =====================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Close modal on backdrop click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+function fmtDate(d) {
+  if (!d) return '-';
+  return new Date(d).toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+
+function statusBadge(s) {
+  return {PAID:'badge-success',PENDING:'badge-warning',PARTIAL:'badge-info',OVERDUE:'badge-danger'}[s] || 'badge-gray';
+}
+
+function payStatusBadge(s) {
+  return {PAID:'badge-success',PENDING:'badge-warning',OVERDUE:'badge-danger'}[s] || 'badge-gray';
+}
+</script>
+</body>
+</html>
