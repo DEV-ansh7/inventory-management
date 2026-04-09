@@ -24,4 +24,9 @@ public class AuthController {
     public ResponseEntity<ApiResponse<JwtResponse>> register(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Registered successfully", authService.register(request)));
     }
+
+    @GetMapping("/health")
+    public ResponseEntity<ApiResponse<String>> health() {
+        return ResponseEntity.ok(ApiResponse.ok("OK"));
+    }
 }
