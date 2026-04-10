@@ -456,7 +456,7 @@ async function login() {
     document.getElementById('userLabel').textContent = res.data.username;
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
-    loadDashboard(); loadInventory(); loadClients(); loadSalesPage(); loadPayments(); loadTransactions();
+    loadDashboard();
   } catch(e) {
     err.style.display = 'block';
     err.textContent = 'Invalid credentials';
@@ -473,7 +473,7 @@ window.onload = () => {
   if (token) {
     document.getElementById('authPage').style.display = 'none';
     document.getElementById('appShell').style.display = 'flex';
-    loadDashboard(); loadInventory(); loadClients(); loadSalesPage(); loadPayments(); loadTransactions();
+    loadDashboard();
   }
   document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') login(); });
 };
@@ -484,7 +484,13 @@ function goTo(page) {
   event.currentTarget.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  if (page === 'purchase') loadPurchaseItems();
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'inventory') loadInventory();
+  else if (page === 'purchase') { loadInventory(); loadPurchaseItems(); }
+  else if (page === 'sales') { loadInventory(); loadClients(); loadSalesPage(); }
+  else if (page === 'payments') loadPayments();
+  else if (page === 'clients') loadClients();
+  else if (page === 'transactions') loadTransactions();
 }
 
 // ===================== API helper =====================
