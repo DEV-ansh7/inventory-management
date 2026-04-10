@@ -46,7 +46,9 @@ public class NotificationService {
                 Inventory Management Team
                 """, clientName, amount, saleNumber, dueDate);
 
-        sendEmail(clientEmail, subject, body);
+        if (clientEmail != null) {
+            sendEmail(clientEmail, subject, body);
+        }
         sendEmail(adminEmail, "[Alert] Payment Due: " + saleNumber,
                 "Payment of ₹" + amount + " from " + clientName + " is due on " + dueDate);
     }
@@ -65,7 +67,9 @@ public class NotificationService {
                 Inventory Management Team
                 """, clientName, amount, saleNumber, dueDate);
 
-        sendEmail(clientEmail, subject, body);
+        if (clientEmail != null) {
+            sendEmail(clientEmail, subject, body);
+        }
         sendEmail(adminEmail, "[OVERDUE Alert] " + saleNumber,
                 "OVERDUE: ₹" + amount + " from " + clientName + " (due " + dueDate + ")");
     }

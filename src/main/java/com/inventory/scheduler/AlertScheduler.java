@@ -42,12 +42,10 @@ public class AlertScheduler {
             String clientEmail = client != null ? client.getEmail() : null;
             String clientName = client != null ? client.getName() : "Customer";
 
-            if (clientEmail != null) {
-                notificationService.sendPaymentDueAlert(
-                        clientEmail, clientName, saleNumber,
-                        payment.getAmount().toPlainString(),
-                        payment.getDueDate().toString());
-            }
+            notificationService.sendPaymentDueAlert(
+                    clientEmail, clientName, saleNumber,
+                    payment.getAmount().toPlainString(),
+                    payment.getDueDate().toString());
 
             payment.setAlertSent(true);
             paymentRepo.save(payment);
@@ -71,12 +69,10 @@ public class AlertScheduler {
             String clientEmail = client != null ? client.getEmail() : null;
             String clientName = client != null ? client.getName() : "Customer";
 
-            if (clientEmail != null) {
-                notificationService.sendPaymentOverdueAlert(
-                        clientEmail, clientName, saleNumber,
-                        payment.getAmount().toPlainString(),
-                        payment.getDueDate().toString());
-            }
+            notificationService.sendPaymentOverdueAlert(
+                    clientEmail, clientName, saleNumber,
+                    payment.getAmount().toPlainString(),
+                    payment.getDueDate().toString());
         }
         log.info("Marked {} payments as OVERDUE", overduePayments.size());
     }
