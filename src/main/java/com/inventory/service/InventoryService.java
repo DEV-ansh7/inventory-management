@@ -41,6 +41,7 @@ public class InventoryService {
                 .purchasePrice(req.getPurchasePrice())
                 .sellingPrice(req.getSellingPrice())
                 .sku(req.getSku())
+                .active(true)
                 .build();
         return itemRepo.save(item);
     }
