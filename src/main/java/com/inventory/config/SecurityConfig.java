@@ -39,7 +39,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/payment/webhook/**").permitAll()
-                .requestMatchers("/", "/index.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
+                .requestMatchers("/", "/index.html").permitAll()
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authProvider())
